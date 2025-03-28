@@ -23,12 +23,15 @@
 #define SAMPLES 5
 #define TIMES 5
 #define BYTES_PER_GB (1024*1024*1024LL)
-#define SIZE (1*BYTES_PER_GB)
-#define PAGE_SIZE (1<<12)
+#define MAX_SIZE (1*BYTES_PER_GB)
+#ifndef PAGE_SIZE
+# define PAGE_SIZE (1<<12)
+#endif
+static unsigned long long SIZE = MAX_SIZE;
 
 // This must be at least 32 byte aligned to make some AVX instructions happy.
 // Have PAGE_SIZE buffering so we don't have to do math for prefetching.
-char array[SIZE + PAGE_SIZE] __attribute__((aligned (32)));
+char array[MAX_SIZE + PAGE_SIZE] __attribute__((aligned (32)));
 
 // Compute the bandwidth in GiB/s.
 static inline double to_bw(size_t bytes, double secs) {
@@ -129,7 +132,9 @@ int main() {
   timefun(write_memory_memset);
 
 #ifdef WITH_OPENMP
-
+  unsigned long long npages_per_thread = (MAX_SIZE / omp_get_max_threads()) / PAGE_SIZE;
+  SIZE = PAGE_SIZE * npages_per_thread * omp_get_max_threads();
+  // fprintf(stderr, "OMP SIZE: %llu\n", SIZE);
   memset(array, 0xFF, SIZE);  // un-ZFOD the page.
   * ((uint64_t *) &array[SIZE]) = 0;
 
