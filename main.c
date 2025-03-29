@@ -7,6 +7,7 @@
 // bandwidth as advertised by the intel specs: 23.8 GiB/s (http://goo.gl/r8Aab)
 
 #include <assert.h>
+#include <errno.h>
 #include <math.h>
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -27,6 +28,9 @@
 #ifndef PAGE_SIZE
 # define PAGE_SIZE (1<<12)
 #endif
+// NOTE(hholst): Use to set higher priority to avoid background or UI to interfere too much.
+#define RENICE (-10)
+
 static unsigned long long SIZE = MAX_SIZE;
 
 // This must be at least 32 byte aligned to make some AVX instructions happy.
@@ -107,7 +111,11 @@ int main() {
   memset(array, 0xFF, SIZE);  // un-ZFOD the page.
   * ((uint64_t *) &array[SIZE]) = 0;
 
-  // TODO(awreece) iopl(0) and cli/sti?
+#ifdef RENICE
+  if (errno = 0, nice(RENICE) < 0 && errno != 0) {
+    perror("warning: failed to set process priority level");
+  }
+#endif
 
   timefun(read_memory_rep_lodsq);
   timefun(read_memory_loop);
