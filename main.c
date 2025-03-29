@@ -116,6 +116,8 @@ int main() {
   }
 #endif
 
+  fprintf(stderr, "# Single-core performance. Threads: 1\n\n");
+
   timefun(read_memory_rep_lodsq);
   timefun(read_memory_loop);
 #ifdef __SSE4_1__
@@ -139,6 +141,7 @@ int main() {
   timefun(write_memory_memset);
 
 #ifdef WITH_OPENMP
+  fprintf(stderr, "\n# Multi-core performance. Threads: %i\n\n", omp_get_max_threads());
   unsigned long long npages_per_thread = (MAX_SIZE / omp_get_max_threads()) / PAGE_SIZE;
   SIZE = PAGE_SIZE * npages_per_thread * omp_get_max_threads();
   // fprintf(stderr, "OMP SIZE: %llu\n", SIZE);
