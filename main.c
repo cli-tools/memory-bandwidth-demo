@@ -35,7 +35,7 @@ static unsigned long long SIZE = MAX_SIZE;
 
 // This must be at least 32 byte aligned to make some AVX instructions happy.
 // Have PAGE_SIZE buffering so we don't have to do math for prefetching.
-char array[MAX_SIZE + PAGE_SIZE] __attribute__((aligned (32)));
+char array[MAX_SIZE] __attribute__((aligned (PAGE_SIZE)));
 
 // Compute the bandwidth in GiB/s.
 static inline double to_bw(size_t bytes, double secs) {
@@ -109,7 +109,6 @@ void timeit(void (*function)(void*, size_t), char* name) {
 
 int main() {
   memset(array, 0xFF, SIZE);  // un-ZFOD the page.
-  * ((uint64_t *) &array[SIZE]) = 0;
 
 #ifdef RENICE
   if (errno = 0, nice(RENICE) < 0 && errno != 0) {
@@ -144,7 +143,6 @@ int main() {
   SIZE = PAGE_SIZE * npages_per_thread * omp_get_max_threads();
   // fprintf(stderr, "OMP SIZE: %llu\n", SIZE);
   memset(array, 0xFF, SIZE);  // un-ZFOD the page.
-  * ((uint64_t *) &array[SIZE]) = 0;
 
   timefunp(read_memory_rep_lodsq);
   timefunp(read_memory_loop);
